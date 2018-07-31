@@ -14,7 +14,7 @@ set Adiabatic surface temperature	   = 1600
 set Use conduction timestep    		   = true
 ####################################################
 # CHANGE: NAME OUTPUT FOLDER
-set Output directory = h150_B06_noHPE_v2
+set Output directory = h150_B06_noHPE
 ###################################################
 
 
@@ -139,7 +139,7 @@ end
 
 subsection Mesh refinement
   set Initial adaptive refinement        = 2
-  set Initial global refinement          = 5
+  set Initial global refinement          = 4
   set Strategy = strain rate, thermal energy density, viscosity, composition approximate gradient
   set Time steps between mesh refinement = 10
 end
