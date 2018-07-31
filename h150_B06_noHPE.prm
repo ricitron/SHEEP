@@ -1,0 +1,199 @@
+#########################################################
+# This is a model setup for the SHEEP project. We want to
+# see how a dense layer at the bottom with different
+# properties survives in the mantle.
+#
+# Changes are well identified.
+########################################################
+
+set Dimension                              = 2
+set Start time                             = 0
+set End time                               = 1e9
+set Use years in output instead of seconds = true
+set Adiabatic surface temperature	   = 1600
+set Use conduction timestep    		   = true
+####################################################
+# CHANGE: NAME OUTPUT FOLDER
+set Output directory = h150_B06_noHPE_v2
+###################################################
+
+
+subsection Formulation
+   set Formulation = Boussinesq approximation
+end 
+
+
+# Box model
+subsection Geometry model
+  set Model name = box
+
+  subsection Box
+    set X extent = 8670.e3
+    set Y extent = 2890.e3
+
+    set X periodic = true
+    set X repetitions = 3
+  end
+end
+
+
+subsection Boundary temperature model
+  set Fixed temperature boundary indicators = bottom, top
+  set List of model names = box
+
+  subsection Box
+    set Top temperature    = 300
+    ####################################################
+    # CHANGE: INITIAL TEMPERATURE PROFILE
+    # 4000 present-day, 4800 for Archean (minus adiabat)
+    # 3300 K is for a Tcmb of 4200 K
+    set Bottom temperature = 3300
+    ####################################################
+    end
+end
+
+
+subsection Boundary velocity model
+  set Tangential velocity boundary indicators = bottom, top
+end
+
+
+subsection Gravity model
+  set Model name = vertical
+  subsection Vertical
+    set Magnitude = 9.8
+  end
+end
+
+
+# We initialize the temperature to two different values inside and outside of
+# the dense basal layer.
+subsection Initial temperature model
+  set Model name = function
+
+  subsection Function
+    set Variable names      = x,y
+    ##########################################################
+    # CHANGE: THICKNESS OF SHEEP LAYER
+    # CHANGE: INITIAL TEMPERATURE INSIDE AND OUTSIDE LAYER,
+    # 1st value is inside, 2nd outside is a sin expression
+    set Function constants  = w=8670.e3, h=2890e3, p=30.0, tref=1600
+    #set Function expression = if(y<Thickness_layer, 1600, p*sin(pi*y/(h-Thickness_layer))*sin(2*5*pi*x/w)+tref)
+    set Function expression = (p*sin(pi*y/h)*sin(5*2*pi*x/w)+tref)
+    ###########################################################
+  end
+end
+
+
+subsection Material model
+  set Model name = simple
+  subsection Simple model
+    ##########################################################
+    # CHANGE: VISCOSITY AMBIENT MANTLE
+    # CHANGE: CONTRAST BETWEEN MATERIALS
+    set Viscosity                       = 2.05e21
+    set Composition viscosity prefactor = 1.
+    ##########################################################
+
+    set Thermal expansion coefficient = 1e-5
+    set Thermal viscosity exponent    = 2.0  # ~2 orders of manitude
+
+    set Reference density                              = 3300
+    set Reference temperature                          = 1600
+    ##########################################################
+    # CHANGE: REFERENCE SURFACE DENSITY FOR THE MANTLE
+    # CHANGE: DENSITY DIFFERENCE BETWEEN LAYERS
+    set Density differential for compositional field 1 = 59
+    ##########################################################
+    set Thermal conductivity                       = 4.7
+  end
+
+  set Material averaging = harmonic average 
+end
+
+
+#subsection Heating model
+#   set List of model names = radioactive decay
+#   subsection Radioactive decay
+#      set Crust composition number     = 0
+#      set Crust defined by composition = true
+#      set Number of elements           = 4
+#
+#      # U38, U35, Th32, K40
+#      set Heating rates    = 5.0e-12   #9.49e-5, 5.68e-4, 2.64e-5, 2.88e-5
+#      set Half decay times = 15.0e9    #4.468e9, 0.704e9, 14.00e9, 1.248e9
+#
+#      set Initial concentrations mantle = 8.20e-3, 0.06e-3, 24.0e-3, 13.2e-3
+#      ######################################################################
+#      # CHANGE: PPM CONCENTRATIONS ON BASAL LAYER (CRUST)
+#      set Initial concentrations crust  = 26.63e-3, 0.192e-3, 134.2e-3, 62.30e-3
+#      ######################################################################
+#   end
+#    set List of model names = compositional heating
+#    subsection Compositional heating
+#       set Compositional heating values = 0, 1.65e-7
+#       set Use compositional field for heat production averaging = 0, 1
+#    end
+#end
+
+
+subsection Mesh refinement
+  set Initial adaptive refinement        = 2
+  set Initial global refinement          = 5
+  set Strategy = strain rate, thermal energy density, viscosity, composition approximate gradient
+  set Time steps between mesh refinement = 10
+end
+
+
+subsection Nullspace removal
+   set Remove nullspace = net x translation
+end
+
+subsection Compositional fields
+  set Number of fields = 1
+  set Names of fields  = basal_layer
+  set Compositional field methods = particles
+  set Mapped particle properties  = basal_layer:initial basal_layer
+end
+
+
+subsection Initial composition model
+  set Model name = function
+
+  subsection Function
+    set Variable names      = x,y
+    ##########################################################
+    # CHANGE: THICKNESS OF SHEEP LAYER
+    set Function constants  = Thickness_layer=150e3
+    ##########################################################
+    set Function expression = if(y<Thickness_layer, 1, 0)
+  end
+end
+
+
+subsection Postprocess
+  set List of postprocessors = visualization, temperature statistics, composition statistics, particles
+
+  subsection Visualization
+    set List of output variables = material properties, thermal conductivity, heating, vertical heat flux
+    set Time between graphical output = 1e7
+    set Output format = hdf5
+    set Interpolate output = true
+  end
+
+  subsection Particles
+    set Number of particles = 600000
+    set Time between data output = 1e7
+    set Data output format = hdf5 
+    set List of particle properties = initial composition
+    set Interpolation scheme = cell average
+    set Update ghost particles = true
+    set Particle generator name = uniform box
+    subsection Generator
+      subsection Uniform box
+        set Maximum x = 8670.e3
+        set Maximum y = 2890.e3
+      end
+    end
+  end 
+end
