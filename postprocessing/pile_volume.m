@@ -10,6 +10,7 @@ aspect_output_folder = '~/Downloads/h300_B08_HPEx5_layered'; % NO trailing /
 options.regular_grid_ny = 290; % 
 options.nskip = 20; % number of output files to skip (saves time and memory if not needed)
 options.load_particles = false; %we're not doing anything with the particles at the moment
+options.output_fields = {'basal_layer','T','density'}; % list of field names to extract from output files
 composition_threshold = 0.5; % composition greater than this number is treated as 'pile' material.
 %% load the output and convert to a regular grid
 aspect_output = load_aspect_output(aspect_output_folder,options);
@@ -20,8 +21,8 @@ aspect_output = load_aspect_output(aspect_output_folder,options);
 nt = length(aspect_output.time);
 pile_fraction = zeros(nt,1);
 for i=1:nt
-    N = size(aspect_output.composition,1)*size(aspect_output.composition,2);
-    pile_fraction(i) = sum(sum( aspect_output.composition(:,:,i) >= 0.5 ))/N;
+    N = size(aspect_output.basal_layer,1)*size(aspect_output.basal_layer,2);
+    pile_fraction(i) = sum(sum( aspect_output.basal_layer(:,:,i) >= 0.5 ))/N;
 end
 
 %% plot the fraction in the piles
@@ -29,3 +30,4 @@ figure;
 plot(aspect_output.time,pile_fraction);
 xlabel('Time (years)');
 ylabel('Basal Layer Fraction (-)');
+

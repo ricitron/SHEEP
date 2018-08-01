@@ -7,6 +7,7 @@ if( nargin < 2 )
     options.nskip=1;
     options.regular_grid_ny = 100;
     options.load_particles = false;
+    options.output_fields = {'basal_layer'};
 end
 if( ismac || isunix )
     path_sep = '/';
@@ -164,24 +165,26 @@ nx = ny/ymax*xmax;
 xrg = linspace(0,xmax,nx+1); xrg = (xrg(1:end-1)+xrg(2:end))/2;
 yrg = linspace(0,ymax,ny+1); yrg = (yrg(1:end-1)+yrg(2:end))/2;
 [xrg,yrg] = meshgrid(xrg,yrg);
-comp_rg = zeros(ny,nx,nt);
 
+for field = options.output_fields
+   output.(field{1}) =  zeros(ny,nx,nt);
+end
 isave=1;
 for ifile=1:options.nskip:length(output_data_file)
     disp(['reading grid output from ' output_data_file{ifile}]);
     velocity = h5read(output_data_file{ifile},'/velocity');
     temperature = h5read(output_data_file{ifile},'/T');
     nodes = h5read(output_grid_file{ifile},'/nodes')';
-    basal_layer = h5read(output_data_file{ifile},'/basal_layer')';
-    % interpolate the nodal composition values from the structured,
-    % irregular ASPECT mesh onto the regular grid:
-    F = scatteredInterpolant(nodes(:,1),nodes(:,2),basal_layer);
-    comp_rg(:,:,isave) = F(xrg,yrg);
-    
+    for field = options.output_fields        
+        data = h5read(output_data_file{ifile},['/' field{1}])';
+        % interpolate the solutions from the structured,
+        % irregular ASPECT mesh onto the regular grid:
+        F = scatteredInterpolant(nodes(:,1),nodes(:,2),data);
+        output.(field{1})(:,:,isave) = F(xrg,yrg);
+    end
     isave=isave+1;
 end
 
-output.composition = comp_rg;
 output.x = xrg;
 output.y = yrg;
 output.time = t;
