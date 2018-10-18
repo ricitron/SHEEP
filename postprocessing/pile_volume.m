@@ -21,10 +21,21 @@ aspect_output = load_aspect_output(aspect_output_folder,options);
 nt = length(aspect_output.time);
 pile_fraction = zeros(nt,1);
 for i=1:nt
+    % pile fraction
     N = size(aspect_output.basal_layer,1)*size(aspect_output.basal_layer,2);
-    pile_fraction(i) = sum(sum( aspect_output.basal_layer(:,:,i) >= 0.5 ))/N;
+    pile_fraction(i) = sum(sum( aspect_output.basal_layer(:,:,i) >= composition_threshold ))/N;
+    % connected components analysis
+    cc(i) = bwconncomp( squeeze(aspect_output.basal_layer(:,:,i))>= composition_threshold );
 end
-
+%% plot the connected components at final timestep
+figure;
+data = zeros(cc(end).ImageSize);
+for i=1:cc(end).NumObjects
+    data(cc(end).PixelIdxList{i}) = i;
+    B = bwboundaries( squeeze(aspect_output.basal_layer(:,:,end)) >= composition_threshold ,cc);
+end
+imagesc(data);
+colorbar
 %% plot the fraction in the piles
 figure;
 plot(aspect_output.time,pile_fraction);
